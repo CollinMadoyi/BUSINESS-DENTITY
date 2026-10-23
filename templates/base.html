@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Identity</title>
+  <style>
+    {% include 'internal_css/style.css' %}
+    {% include 'internal_css/dashboard.css' %}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-mark">DI</div>
+      <div>
+        <strong>Digital Identity</strong>
+        <small>University & Business Profiles</small>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="{% url 'home' %}">Home</a>
+      {% block dashboard_navigation %}<a href="{% url 'dashboard_home' %}">Dashboard</a>{% endblock %}
+      {% if user.is_authenticated %}
+        <a href="{% url 'admin_logout' %}">Logout</a>
+      {% else %}
+        <a href="{% url 'admin_login' %}">Admin Login</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

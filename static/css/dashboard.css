@@ -1,0 +1,4 @@
+/* Dashboard-specific polish */
+.sidebar h3 { margin-top: 0; }
+.business-id-actions { min-width: 190px; }
+.business-id-actions a { display: inline-block; margin: 2px 8px 2px 0; white-space: nowrap; }

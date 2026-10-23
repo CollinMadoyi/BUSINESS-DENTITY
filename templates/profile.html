@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111a16">
+  <title>{{ profile.display_name }} | Digital Profile</title>
+  <meta name="description" content="{{ share_description }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta property="og:title" content="{{ profile.display_name }} | Digital Profile">
+  <meta property="og:description" content="{{ share_description }}">
+  <meta property="og:image" content="{{ share_image_url }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Shareable digital profile card for {{ profile.display_name }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:type" content="profile">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ profile.display_name }} | Digital Profile">
+  <meta name="twitter:description" content="{{ share_description }}">
+  <meta name="twitter:image" content="{{ share_image_url }}">
+  <style>
+    {% include 'internal_css/profile.css' %}
+  </style>
+</head>
+<body class="profile-theme-{{ profile.profile_type|slugify }} profile-color-theme-{{ profile.color_theme|slugify }}">
+  <header class="profile-masthead">
+    <div class="masthead-inner">
+      <div class="brand-mark" aria-hidden="true">DI</div>
+      <div class="brand-copy"><strong>Digital Identity</strong><span>Public profile</span></div>
+      <span class="masthead-label">{% if profile.profile_type == 'BUSINESS_ID' %}BUSINESS ID{% else %}PERSONAL DIRECTORY{% endif %}</span>
+    </div>
+  </header>
+
+  <main class="profile-page">
+    <section class="profile-hero" aria-labelledby="profile-name">
+      {% if profile.profile_photo %}
+        <img src="{{ profile.profile_photo.url }}" class="profile-avatar" alt="Portrait of {{ profile.display_name }}">
+      {% else %}
+        <div class="profile-avatar placeholder-avatar" aria-hidden="true">{{ profile.display_name|slice:':1' }}</div>
+      {% endif %}
+
+      <div class="profile-heading">
+        <p class="eyebrow">{% if profile.profile_type == 'BUSINESS_ID' %}Business ID{% else %}Digital identity{% endif %}</p>
+        <h1 id="profile-name">{{ profile.display_name }}</h1>
+        {% if profile.title %}<p class="profile-title">{{ profile.title }}</p>{% endif %}
+        {% if profile.department %}<p class="profile-title">{{ profile.department }}</p>{% endif %}
+        <div class="organization-line">
+          {% if profile.organization_logo or profile.organization.logo %}
+            <img src="{% if profile.organization_logo %}{{ profile.organization_logo.url }}{% else %}{{ profile.organization.logo.url }}{% endif %}" alt="" class="org-logo">
+          {% endif %}
+          <span>{{ profile.organization.name|default:'Independent' }}</span>
+        </div>
+      </div>
+      <div class="profile-index" aria-hidden="true"><span>{% if profile.profile_type == 'BUSINESS_ID' %}UNIQUE ID{% else %}PROFILE{% endif %}</span><strong>{% if profile.profile_type == 'BUSINESS_ID' %}{{ profile.unique_id }}{% else %}01{% endif %}</strong></div>
+    </section>
+
+    <div class="profile-body">
+      <div class="profile-information">
+        {% if profile.bio %}
+          <section class="about-section">
+            <div class="section-heading"><span>01</span><h2>About</h2></div>
+            <p>{{ profile.bio }}</p>
+          </section>
+        {% endif %}
+
+        {% if profile.about_video %}
+          <section class="about-video-section">
+            <div class="section-heading"><span>02</span><h2>About Me Video</h2></div>
+            <video class="about-video" controls preload="metadata" aria-label="About {{ profile.display_name }}">
+              <source src="{{ profile.about_video.url }}">
+              Your browser does not support the video element.
+            </video>
+          </section>
+        {% endif %}
+
+        <section class="contact-section">
+          <div class="section-heading"><span>03</span><h2>Contact details</h2></div>
+          <dl class="contact-list">
+            {% if profile.email %}<div><dt>Email</dt><dd><a href="mailto:{{ profile.email }}">{{ profile.email }}</a></dd></div>{% endif %}
+            {% if profile.phone %}<div><dt>Phone</dt><dd><a href="tel:{{ profile.phone }}">{{ profile.phone }}</a></dd></div>{% endif %}
+            {% if profile.website %}<div><dt>Website</dt><dd><a href="{{ profile.website }}" target="_blank" rel="noopener noreferrer">{{ profile.website }}</a></dd></div>{% endif %}
+            {% if profile.address or profile.google_maps_url %}<div><dt>Address</dt><dd>{% if profile.address %}{{ profile.address }}{% endif %}{% if profile.google_maps_url %}{% if profile.address %}<br>{% endif %}<a href="{{ profile.google_maps_url }}" target="_blank" rel="noopener noreferrer">View on Google Maps</a>{% endif %}</dd></div>{% endif %}
+          </dl>
+        </section>
+
+        {% if profile.linkedin_url or profile.whatsapp_number or profile.social_links or profile.organization.social_links %}
+          <section class="social-section">
+            <div class="section-heading"><span>04</span><h2>Social profiles</h2></div>
+            <div class="social-links">
+              {% if profile.linkedin_url %}
+                <a class="social-link" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile">
+                  <span class="social-icon social-icon-linkedin" aria-hidden="true">in</span><span>LinkedIn</span>
+                </a>
+              {% endif %}
+              {% if profile.whatsapp_number %}
+                <a class="social-link" href="https://wa.me/{{ profile.whatsapp_number|cut:' '|cut:'-'|cut:'('|cut:')'|cut:'+' }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp profile">
+                  <span class="social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20 11.8a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.8Z"/><path d="M9 8.4c.2-.4.5-.4.7-.4h.5c.2 0 .3.1.4.4l.7 1.7c.1.2 0 .4-.1.6l-.5.6c-.2.2-.2.4 0 .6.4.7 1 1.3 1.8 1.7.2.1.4.1.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.6.8c.2.1.3.3.2.5-.1.7-.5 1.2-1.1 1.4-.7.3-1.6.1-2.5-.3-1.1-.5-2-1.3-2.8-2.2-.8-1-1.3-2-1.3-2.9 0-.7.3-1.2.5-1.5Z"/></svg></span><span>WhatsApp</span>
+                </a>
+              {% endif %}
+              {% for label, url in profile.social_links.items %}
+                <a class="social-link" href="{{ url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ label }} profile">
+                  <span class="social-icon social-icon-{{ label|slugify }}" aria-hidden="true">{{ label|slice:":2"|upper }}</span><span>{{ label }}</span>
+                </a>
+              {% endfor %}
+              {% if profile.organization.social_links %}
+                {% for label, url in profile.organization.social_links.items %}
+                  <a class="social-link" href="{{ url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ label }} profile">
+                    <span class="social-icon social-icon-{{ label|slugify }}" aria-hidden="true">{{ label|slice:":2"|upper }}</span><span>{{ label }}</span>
+                  </a>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+
+        {% if profile.organization %}
+          <section class="organization-section">
+            <div class="section-heading"><span>05</span><h2>Organization</h2></div>
+            {% if profile.organization.description %}<p>{{ profile.organization.description }}</p>{% endif %}
+            <dl class="contact-list">
+              {% if profile.organization.email %}<div><dt>Email</dt><dd><a href="mailto:{{ profile.organization.email }}">{{ profile.organization.email }}</a></dd></div>{% endif %}
+              {% if profile.organization.phone %}<div><dt>Phone</dt><dd><a href="tel:{{ profile.organization.phone }}">{{ profile.organization.phone }}</a></dd></div>{% endif %}
+              {% if profile.organization.website %}<div><dt>Website</dt><dd><a href="{{ profile.organization.website }}" target="_blank" rel="noopener noreferrer">{{ profile.organization.website }}</a></dd></div>{% endif %}
+              {% if profile.organization.address %}<div><dt>Address</dt><dd>{{ profile.organization.address }}</dd></div>{% endif %}
+            </dl>
+          </section>
+        {% endif %}
+      </div>
+
+      <aside class="profile-tools" aria-label="Profile actions">
+        <div class="action-row">
+          <a class="save-contact-btn" href="{% url 'public_vcard' profile.slug %}">Save contact</a>
+          <div class="sharing-actions">
+            <button class="share-profile-btn" type="button">Share</button>
+            <button class="copy-link-btn" type="button">Copy link</button>
+          </div>
+          <a class="whatsapp-share-btn" href="{{ whatsapp_share_url }}" data-profile-url="{{ canonical_url }}" data-share-image="{{ share_image_url }}" data-profile-name="{{ profile.display_name }}" target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
+          <a class="download-card-btn" href="{% url 'download_profile_card' profile.slug %}">Download printable card</a>
+          <p class="action-status" aria-live="polite"></p>
+        </div>
+
+        <div class="qr-box">
+          <h2>Open this profile</h2>
+          {% if profile.qr_code %}
+            <img src="{{ profile.qr_code.url }}" alt="QR code linking to {{ profile.display_name }}'s profile" class="qr-image">
+            <p>Scan with your phone camera</p>
+          {% else %}
+            <p class="qr-unavailable">QR code not available</p>
+          {% endif %}
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="profile-footer">Digital Identity <span>·</span> Public profile</footer>
+  <script src="{% static 'js/profile.js' %}"></script>
+</body>
+</html>

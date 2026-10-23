@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">Digital Business Card + Verified Identity</span>
+    <h1>Professional digital identity for institutions, companies, and students.</h1>
+    <p>Replace paper cards with secure, shareable, administrator-managed digital profiles and QR codes.</p>
+    <div class="hero-actions">
+      <a href="/dashboard/" class="btn-primary">Open Dashboard</a>
+      <a href="/admin/login/" class="btn-secondary">Admin Access</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <div class="mini-card">
+      <div class="mini-card__avatar"></div>
+      <div>
+        <h3>Head of Marketing</h3>
+        <p>Victoria University</p>
+      </div>
+    </div>
+    <div class="mini-card info-grid">
+      <span>Phone</span><strong>+256782392699</strong>
+      <span>Email</span><strong>head-marketing@vu.ac.ug</strong>
+      <span>Website</span><strong>vu.ac.ug</strong>
+    </div>
+  </div>
+</section>
+{% endblock %}

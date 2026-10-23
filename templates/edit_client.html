@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-container">
+  <h2>Edit Client Record</h2>
+  <form class="styled-form">
+    <div class="form-row">
+      <div class="form-group"><label>First Name</label><input type="text" value="John"></div>
+      <div class="form-group"><label>Last Name</label><input type="text" value="Doe"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" value="john@vu.ac.ug"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" value="+256782392699"></div>
+    </div>
+    <button class="btn-primary" type="button">Update Client</button>
+  </form>
+</div>
+{% endblock %}

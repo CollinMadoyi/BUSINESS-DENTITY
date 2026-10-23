@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-shell">
+  <aside class="sidebar">
+    <h3>Admin Panel</h3>
+    <a href="{% url 'dashboard_home' %}">Overview</a>
+    <a href="{% url 'create_client' %}">Add Client</a>
+    <a href="{% url 'create_profile' %}">Create Profile</a>
+    <a href="{% url 'admin_logout' %}">Logout</a>
+  </aside>
+  <section class="dashboard-main">
+    <div class="stat-grid">
+      <div class="stat-card"><span>Total Clients</span><strong>{{ total_clients }}</strong></div>
+      <div class="stat-card"><span>Total Digital IDs</span><strong>{{ total_profiles }}</strong></div>
+      <div class="stat-card"><span>Active Profiles</span><strong>{{ active_profiles }}</strong></div>
+      <div class="stat-card"><span>Inactive Profiles</span><strong>{{ inactive_profiles }}</strong></div>
+    </div>
+
+    <div class="table-wrap">
+      <h3>Clients</h3>
+      <div class="table-scroll">
+      <table class="dashboard-table" aria-label="Clients">
+        <thead><tr><th>Name</th><th>Type</th><th>Organization</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for client in clients %}
+          <tr>
+            <td>{{ client.display_name }}</td>
+            <td>{{ client.client_type }}</td>
+            <td>{{ client.organization.name|default:'-' }}</td>
+            <td>{{ client.created_at|date:'Y-m-d' }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">No clients yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="table-wrap mt-2">
+      <h3>Business IDs</h3>
+      <div class="table-scroll">
+      <table class="dashboard-table" aria-label="Business IDs">
+        <thead><tr><th>Name</th><th>Unique ID</th><th>Status</th><th>Public URL</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for profile in business_profiles %}
+          {% url 'business_profile' profile.slug as public_url %}
+          <tr>
+            <td>{{ profile.display_name }}</td>
+            <td>{{ profile.unique_id }}</td>
+            <td>{% if profile.is_active %}Active{% else %}Inactive{% endif %}</td>
+            <td><a href="{{ public_url }}">{{ request.scheme }}://{{ request.get_host }}{{ public_url }}</a></td>
+            <td class="business-id-actions">
+              <a href="{{ public_url }}">View</a>
+              <a href="{% url 'edit_business_profile' profile.slug %}">Edit</a>
+              {% if profile.is_active %}<a href="{% url 'download_profile_card' profile.slug %}">Download printable card</a>{% endif %}
+              {% if profile.qr_code %}
+                <a href="{{ profile.qr_code.url }}" target="_blank" rel="noopener noreferrer">Open QR</a>
+                <a href="{{ profile.qr_code.url }}" download="{{ profile.slug }}-qr.png">Download QR</a>
+              {% else %}
+                <span class="qr-unavailable">QR unavailable</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5">No business IDs yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="table-wrap mt-2">
+      <h3>Profiles</h3>
+      <div class="table-scroll">
+      <table class="dashboard-table" aria-label="Profiles">
+        <thead><tr><th>Name</th><th>Type</th><th>URL</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for profile in profiles %}
+          <tr>
+            <td>{{ profile.display_name }}</td>
+            <td>{{ profile.profile_type }}</td>
+            <td>/id/{{ profile.slug }}/</td>
+            <td>{% if profile.is_active %}Active{% else %}Inactive{% endif %}</td>
+            <td>
+              {% if profile.is_active %}<a href="{% url 'download_profile_card' profile.slug %}">Download printable card</a>{% endif %}
+              {% if profile.qr_code %}
+                <a href="{{ profile.qr_code.url }}" download="{{ profile.slug }}-qr.png">Download QR</a>
+              {% else %}
+                <span class="qr-unavailable">QR unavailable</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5">No profiles yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
