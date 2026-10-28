@@ -199,11 +199,6 @@ class DigitalProfile(models.Model):
 
         qr_name = self.qr_code.name or ''
         is_generated_qr = qr_name.startswith(GENERATED_QR_PREFIX)
-        if qr_name and not is_generated_qr:
-            if self.qr_code_url:
-                self.qr_code_url = ''
-                type(self).objects.filter(pk=self.pk).update(qr_code_url='')
-            return
 
         target_url = qr_profile_url(self)
         if not target_url:
@@ -225,7 +220,7 @@ class DigitalProfile(models.Model):
         image = qrcode.make(target_url)
         image_buffer = BytesIO()
         image.save(image_buffer, format='PNG')
-        old_qr_name = qr_name if is_generated_qr else ''
+        old_qr_name = qr_name
         self.qr_code.save(
             f'generated/profile-{self.pk}.png',
             ContentFile(image_buffer.getvalue()),

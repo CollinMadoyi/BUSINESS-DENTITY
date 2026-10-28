@@ -16,11 +16,11 @@ This project is a Django-based digital identity platform for managing administra
 
 ## Run locally
 1. Change into the project folder.
-2. Configure a Neon pooled connection as `DATABASE_URL` and a random `SECRET_KEY` in `.env.local` or the process environment. See [Connect a Neon PostgreSQL database](#connect-a-neon-postgresql-database).
+2. Configure PostgreSQL connection URLs and a random `SECRET_KEY` in `.env.local` or the process environment. Use the pooled `DATABASE_URL` for app traffic and the direct `DATABASE_URL_UNPOOLED` for migrations.
 3. Install dependencies:
    `python3 -m pip install -r requirements.txt`
 4. Run migrations:
-   `python3 manage.py migrate`
+   `NEON_USE_UNPOOLED_DATABASE_URL=1 python3 manage.py migrate`
 5. Create a superuser:
    `python3 manage.py createsuperuser`
 6. Start the local development server with Django's static and media serving enabled:
@@ -38,38 +38,28 @@ Put the generated value in `.env.local` as `SECRET_KEY=...`; never commit it.
 
 ## Deploy free on Render
 
-This repository includes a Render Blueprint in `render.yaml`. The free web service uses Neon for PostgreSQL and WhiteNoise for static assets. Render free web services sleep after periods without traffic, so the first request after idle can take a little longer. Their filesystem is ephemeral: uploaded profile photos, organization logos, videos, and QR images are not durable across redeploys or service replacement. Use durable object storage before relying on uploaded media in production.
+This repository includes a Render Blueprint in `render.yaml`. The web service uses Neon PostgreSQL and Neon Object Storage for durable media, with WhiteNoise for static assets. Render free web services sleep after periods without traffic, so the first request after idle can take a little longer.
 
 1. Push this project to a GitHub repository. Do not commit `.env`, `.env.local`, or database credentials.
 2. In Render, choose **New + → Blueprint**, connect the GitHub repository, and apply the `render.yaml` blueprint.
-3. In the Render service environment settings, provide the Neon pooled connection as `DATABASE_URL` and the direct connection as `DATABASE_URL_UNPOOLED`. Keep `DEBUG=False`; Render generates `SECRET_KEY`.
-4. Wait for the first deployment. The start command applies database migrations over the direct connection and starts Gunicorn; static files are collected during the build.
-5. After Render assigns the service URL, set `SITE_URL` in its environment settings to that public HTTPS URL and redeploy.
-6. Open the service Shell and run `python manage.py createsuperuser` to create your own administrator account. Do not use example/default credentials.
-7. If profiles already exist, run `python manage.py generate_profile_qr_codes --regenerate-generated` in the service Shell after setting `SITE_URL`.
+3. Keep `DEBUG=False`; Render generates `SECRET_KEY`. Provide the pooled PostgreSQL URL as `DATABASE_URL` and the direct PostgreSQL URL as `DATABASE_URL_UNPOOLED` in the Render environment. Never commit either URL.
+4. In Neon, create a new empty project in a region supporting Object Storage, create a private bucket named `digital-business-id-media`, and create a storage credential with read/write access. Add its endpoint, region, access key ID, and secret access key to the matching Render environment variables. Never commit or share the credential values.
+5. Wait for the first deployment. The start command applies database migrations over the direct connection and starts Gunicorn; static files are collected during the build.
+6. QR links default to Render's assigned HTTPS hostname. Set `SITE_URL` in the service environment to your canonical HTTPS URL if using a custom domain, then redeploy.
+7. Open the service Shell and run `python manage.py createsuperuser` to create your own administrator account. Do not use example/default credentials.
+8. The new database is empty, so no local records are imported. If profiles are later created before a valid `SITE_URL` is configured, run `python manage.py generate_profile_qr_codes --regenerate-generated` after setting it.
 
-For a custom domain, add it in Render and update `SITE_URL` to that HTTPS URL. Uploaded media will still need durable external storage.
+For local development, `SITE_URL` defaults to `http://127.0.0.1:8000` and uploads use the local filesystem. Production file URLs use signed requests to the private Neon bucket; configure the bucket and all `AWS_*` environment variables before deploying. Neon Object Storage currently requires one of these regions: `aws-us-east-2`, `aws-us-east-1`, `aws-eu-central-1`, or `aws-ap-southeast-1`.
 
 ## Run tests
 
-Use the test settings module to run tests against an isolated, in-memory SQLite database, regardless of any Neon `DATABASE_URL` configured in `.env`, `.env.local`, or the environment:
+Use the test settings module to run tests against an isolated, in-memory SQLite database:
 
 ```sh
 python3 manage.py test --settings=digital_identity.test_settings
 ```
 
-The regular settings require a Neon PostgreSQL URL and fail at startup if it is missing. Running tests with regular settings creates a PostgreSQL test database named `test_<configured database name>` (for example, `test_neondb`). PostgreSQL-backed tests require permission to create and drop that test database, and no other sessions may still be connected when Django tears it down. The explicit SQLite test settings use an isolated in-memory database and avoid creating, modifying, or dropping any Neon database.
-
-## Connect a Neon PostgreSQL database
-The Neon CLI links the project and writes pooled `DATABASE_URL` and direct `DATABASE_URL_UNPOOLED` values to `.env.local` (or `.env` if that file already exists). Django loads `.env` first when present, otherwise `.env.local`. Both files are excluded from Git.
-
-Use the pooled `DATABASE_URL` for normal application traffic. Run schema migrations over the direct connection:
-
-```sh
-NEON_USE_UNPOOLED_DATABASE_URL=1 python3 manage.py migrate
-```
-
-For a hosted deployment, configure `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) as secret environment variables instead of committing either connection string. The application does not fall back to a local SQLite database when `DATABASE_URL` is missing.
+The test settings use an isolated in-memory SQLite database and do not modify your PostgreSQL database. Object storage remains disabled in tests unless explicitly configured.
 
 Collect static assets as part of each deployment so pages can load their CSS and JavaScript when `DEBUG=False`:
 

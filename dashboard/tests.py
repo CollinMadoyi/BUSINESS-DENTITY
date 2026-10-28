@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from unittest.mock import patch
 from organizations.models import Organization
@@ -38,7 +38,7 @@ class BusinessIdDashboardTests(TestCase):
 		self.assertEqual(response.status_code, 302)
 
 	def test_dashboard_lists_all_business_ids_with_matching_public_and_admin_actions(self):
-		self.create_profile(qr_code='qr_codes/alex-rivera.png')
+		profile = self.create_profile(qr_code='qr_codes/alex-rivera.png')
 		self.create_profile(
 			slug='inactive-business',
 			unique_id='BIZ-1002',
@@ -67,7 +67,10 @@ class BusinessIdDashboardTests(TestCase):
 		self.assertContains(response, reverse('edit_business_profile', args=['alex-rivera']))
 		self.assertContains(response, reverse('download_profile_card', args=['alex-rivera']))
 		self.assertNotContains(response, reverse('download_profile_card', args=['inactive-business']))
-		self.assertContains(response, '/media/qr_codes/alex-rivera.png')
+		self.assertContains(
+			response,
+			f'href="{profile.qr_code.url}" target="_blank" rel="noopener noreferrer">Open QR</a>',
+		)
 		self.assertContains(response, 'Download QR')
 		self.assertContains(response, 'alex-rivera-qr.png')
 		self.assertNotContains(response, 'PORT-1003')
@@ -91,11 +94,12 @@ class BusinessIdDashboardTests(TestCase):
 		)
 
 	def test_dashboard_shows_qr_unavailable_in_both_tables_without_generating_qr(self):
-		self.create_profile()
-		self.client.force_login(self.staff_user)
+		with override_settings(SITE_URL=''):
+			self.create_profile()
+			self.client.force_login(self.staff_user)
 
-		with patch('profiles.models.qrcode.make') as make_qr:
-			response = self.client.get(reverse('dashboard_home'))
+			with patch('profiles.models.qrcode.make') as make_qr:
+				response = self.client.get(reverse('dashboard_home'))
 
 		self.assertEqual(response.status_code, 200)
 		self.assertEqual(response.content.count(b'QR unavailable'), 2)

@@ -3,7 +3,7 @@ services:
     name: digital-business-id
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && DATABASE_URL=sqlite:////tmp/render-build.sqlite3 SECRET_KEY=render-static-build-only python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && SECRET_KEY=render-static-build-only DATABASE_URL=sqlite:////tmp/render-build.sqlite3 python manage.py collectstatic --noinput
     startCommand: NEON_USE_UNPOOLED_DATABASE_URL=1 python manage.py migrate --noinput && gunicorn digital_identity.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /
     envVars:
@@ -14,4 +14,16 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: USE_NEON_OBJECT_STORAGE
+        value: "True"
+      - key: AWS_STORAGE_BUCKET_NAME
+        value: digital-business-id-media
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
         sync: false

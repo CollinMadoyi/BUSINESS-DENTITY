@@ -24,6 +24,14 @@ render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if render_hostname:
     ALLOWED_HOSTS.append(render_hostname)
 
+
+def default_site_url(debug, hostname):
+    if hostname:
+        return f'https://{hostname}'
+    if debug:
+        return 'http://127.0.0.1:8000'
+    return ''
+
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 if render_hostname:
     CSRF_TRUSTED_ORIGINS.append(f'https://{render_hostname}')
@@ -89,7 +97,7 @@ else:
     database_url_name = 'DATABASE_URL'
 
 if not database_url:
-    raise ImproperlyConfigured(f'{database_url_name} must be set to use the Neon database.')
+    raise ImproperlyConfigured(f'{database_url_name} must be set to use PostgreSQL.')
 
 DATABASES = {'default': env.db(database_url_name)}
 
@@ -110,7 +118,32 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-SITE_URL = env('SITE_URL', default='').rstrip('/')
+SITE_URL = env('SITE_URL', default=default_site_url(DEBUG, render_hostname)).rstrip('/')
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
+if env.bool('USE_NEON_OBJECT_STORAGE', default=False):
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'bucket_name': env('AWS_STORAGE_BUCKET_NAME'),
+            'endpoint_url': env('AWS_ENDPOINT_URL_S3'),
+            'region_name': env('AWS_REGION'),
+            'access_key': env('AWS_ACCESS_KEY_ID'),
+            'secret_key': env('AWS_SECRET_ACCESS_KEY'),
+            'addressing_style': 'path',
+            'signature_version': 's3v4',
+            'querystring_auth': True,
+            'file_overwrite': False,
+        },
+    }
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 

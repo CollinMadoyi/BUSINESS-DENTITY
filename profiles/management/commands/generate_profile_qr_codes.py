@@ -8,7 +8,7 @@ from profiles.models import (
 
 
 class Command(BaseCommand):
-    help = 'Generate QR codes for profiles that do not have one.'
+    help = 'Generate or repair UUID-based QR codes for profiles.'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -34,8 +34,6 @@ class Command(BaseCommand):
                 raise CommandError(
                     f'Could not build a valid public URL for profile {profile.pk}; no QR codes were generated for it.'
                 )
-            if qr_name and not is_generated_qr:
-                continue
             if (
                 is_generated_qr
                 and not options['regenerate_generated']
@@ -47,7 +45,12 @@ class Command(BaseCommand):
                 profile.qr_code_url = ''
 
             profile.save()
-            if profile.qr_code and profile.qr_code.storage.exists(profile.qr_code.name):
+            if (
+                profile.qr_code
+                and profile.qr_code.name.startswith(GENERATED_QR_PREFIX)
+                and profile.qr_code_url == target_url
+                and profile.qr_code.storage.exists(profile.qr_code.name)
+            ):
                 generated += 1
 
         self.stdout.write(self.style.SUCCESS(f'Generated QR codes for {generated} profile(s).'))

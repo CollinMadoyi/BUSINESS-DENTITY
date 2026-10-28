@@ -81,7 +81,6 @@ class BusinessProfileForm(forms.ModelForm):
             'social_medium',
             'social_behance',
             'social_dribbble',
-            'qr_code',
             'is_active',
         ]
 

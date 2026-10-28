@@ -48,7 +48,7 @@ class DigitalProfileAdmin(admin.ModelAdmin):
         'client__display_name',
         'organization__name',
     )
-    readonly_fields = ('public_id', 'qr_code_url', 'created_at', 'updated_at')
+    readonly_fields = ('public_id', 'qr_code', 'qr_code_url', 'created_at', 'updated_at')
     list_select_related = ('client', 'organization')
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)

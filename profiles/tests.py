@@ -11,9 +11,21 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from urllib.parse import parse_qs, urlsplit
 from PIL import Image
+from digital_identity.settings import default_site_url
 from organizations.models import Organization
 from .forms import BusinessProfileForm
 from .models import MAX_ABOUT_VIDEO_SIZE, Client, DigitalProfile, validate_about_video_size
+
+
+class SiteUrlDefaultTests(TestCase):
+	def test_render_hostname_is_used_as_the_default_site_url(self):
+		self.assertEqual(default_site_url(False, 'digital-business-id.onrender.com'), 'https://digital-business-id.onrender.com')
+
+	def test_debug_defaults_to_localhost(self):
+		self.assertEqual(default_site_url(True, None), 'http://127.0.0.1:8000')
+
+	def test_production_without_a_hostname_has_no_site_url(self):
+		self.assertEqual(default_site_url(False, None), '')
 
 
 class BusinessProfileViewTests(TestCase):
@@ -326,7 +338,7 @@ class BusinessProfileViewTests(TestCase):
 		self.assertEqual(profile.qr_code.name, old_qr_name)
 		self.assertTrue(profile.qr_code.storage.exists(profile.qr_code.name))
 
-	def test_regenerate_command_updates_generated_qrs_but_keeps_manual_uploads(self):
+	def test_regenerate_command_updates_generated_qrs_and_converts_manual_uploads(self):
 		generated_profile = self.create_profile()
 		old_generated_name = generated_profile.qr_code.name
 		manual_profile = self.create_profile(
@@ -341,9 +353,13 @@ class BusinessProfileViewTests(TestCase):
 		manual_profile.refresh_from_db()
 		self.assertNotEqual(generated_profile.qr_code.name, old_generated_name)
 		self.assertFalse(generated_profile.qr_code.storage.exists(old_generated_name))
-		self.assertEqual(manual_profile.qr_code.name, manual_name)
-		with manual_profile.qr_code.open('rb') as qr_file:
-			self.assertEqual(qr_file.read(), b'manual-qr-image')
+		self.assertTrue(manual_profile.qr_code.name.startswith('qr_codes/generated/'))
+		self.assertEqual(
+			manual_profile.qr_code_url,
+			f'https://identity.example/item/{manual_profile.public_id}/',
+		)
+		self.assertFalse(manual_profile.qr_code.storage.exists(manual_name))
+		self.assertTrue(manual_profile.qr_code.storage.exists(manual_profile.qr_code.name))
 
 	def test_uuid_profile_url_hides_inactive_and_unknown_profiles(self):
 		profile = self.create_profile()
@@ -358,17 +374,31 @@ class BusinessProfileViewTests(TestCase):
 			404,
 		)
 
-	def test_manual_qr_upload_is_not_overwritten_on_slug_change(self):
+	def test_manual_qr_is_replaced_with_generated_uuid_qr(self):
 		profile = self.create_profile(
 			qr_code=SimpleUploadedFile('custom.png', b'manual-qr-image', content_type='image/png')
 		)
-		original_name = profile.qr_code.name
+		self.assertTrue(profile.qr_code.name.startswith('qr_codes/generated/'))
+		self.assertEqual(
+			profile.qr_code_url,
+			f'https://identity.example/item/{profile.public_id}/',
+		)
+		with Image.open(profile.qr_code.path) as image:
+			self.assertEqual(image.format, 'PNG')
 
-		profile.slug = 'alex-rivera-updated'
-		profile.save()
+	def test_manual_qr_file_is_preserved_if_generated_replacement_fails(self):
+		with override_settings(SITE_URL=''):
+			with self.assertLogs('profiles.models', level='WARNING'):
+				profile = self.create_profile(
+					qr_code=SimpleUploadedFile('custom.png', b'manual-qr-image', content_type='image/png')
+				)
+		old_qr_name = profile.qr_code.name
 
-		self.assertEqual(profile.qr_code.name, original_name)
-		self.assertEqual(profile.qr_code_url, '')
+		with patch('profiles.models.qrcode.make', side_effect=RuntimeError('generation failed')):
+			with self.assertRaisesMessage(RuntimeError, 'generation failed'):
+				profile.save()
+
+		self.assertTrue(profile.qr_code.storage.exists(old_qr_name))
 		with profile.qr_code.open('rb') as qr_file:
 			self.assertEqual(qr_file.read(), b'manual-qr-image')
 
@@ -403,7 +433,7 @@ class BusinessProfileViewTests(TestCase):
 			f'https://identity.example/item/{profile.public_id}/',
 		)
 		self.assertTrue(profile.qr_code.storage.exists(profile.qr_code.name))
-		self.assertEqual(command_output.getvalue(), 'Generated QR codes for 1 profile(s).\n')
+		self.assertIn('Generated QR codes for 1 profile(s).', command_output.getvalue())
 
 	def test_profile_owner_only_displays_social_profiles_with_saved_urls(self):
 		owner = get_user_model().objects.create_user(

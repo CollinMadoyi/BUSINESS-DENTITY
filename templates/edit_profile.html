@@ -2,6 +2,12 @@
 {% block content %}
 <div class="form-container">
   <h2>Edit Business ID: {{ profile.display_name }}</h2>
+  {% if profile.qr_code %}
+  <section class="profile-qr-code" aria-label="Generated profile QR code">
+    <img class="qr-image" src="{{ profile.qr_code.url }}" alt="QR code linking to {{ profile.display_name }}'s profile">
+    <a href="{{ profile.qr_code.url }}" download="{{ profile.slug }}-qr.png">Download QR code</a>
+  </section>
+  {% endif %}
   <form class="styled-form" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
